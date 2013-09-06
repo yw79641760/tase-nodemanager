@@ -1,0 +1,9 @@
+.classpath
+*.class
+.project
+.settings
+*sigar*
+logs/*
+*.log
+*.svn*
+target/*
