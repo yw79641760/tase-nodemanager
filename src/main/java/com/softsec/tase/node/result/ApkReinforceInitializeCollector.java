@@ -14,10 +14,12 @@ import org.slf4j.LoggerFactory;
 import com.softsec.tase.common.dto.app.AppResult;
 import com.softsec.tase.common.dto.app.apk.Apk;
 import com.softsec.tase.common.rpc.domain.job.JobReinforceRequest;
+import com.softsec.tase.node.Constants;
 import com.softsec.tase.node.domain.RawResult;
 import com.softsec.tase.node.exception.ParserException;
 import com.softsec.tase.node.exception.ResultException;
 import com.softsec.tase.node.util.domain.ApkHandler;
+import com.softsec.tase.store.Configuration;
 import com.softsec.tase.store.exception.IOUtilsException;
 import com.softsec.tase.store.util.fs.IOUtils;
 
@@ -39,6 +41,7 @@ public class ApkReinforceInitializeCollector extends ResultCollectorService {
 	public int validate(RawResult rawResult) throws ResultException {
 		
 		int retCode = -1;
+		String reinforceRepo = Configuration.get(Constants.FTP_REINFORCE_REPO, "reinforce");
 		
 		JobReinforceRequest jobReinforceRequest = new JobReinforceRequest();
 		TDeserializer deserializer = new TDeserializer(new TBinaryProtocol.Factory());
@@ -54,7 +57,7 @@ public class ApkReinforceInitializeCollector extends ResultCollectorService {
 		
 		Apk apk = null;
 		try {
-			apk = ApkHandler.getApkFromApkFile(new AppResult(jobReinforceRequest.getAppPath()), "reinforce");
+			apk = ApkHandler.getApkFromApkFile(new AppResult(jobReinforceRequest.getAppPath()), reinforceRepo);
 		} catch (ParserException pe) {
 			LOGGER.error("Failed to parse apk object from file [ " + jobReinforceRequest.getAppPath() + " ] : " + pe.getMessage(), pe);
 			throw new ResultException("Failed to parse apk object from file [ " + jobReinforceRequest.getAppPath() + " ] : " + pe.getMessage(), pe);

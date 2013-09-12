@@ -12,6 +12,8 @@ import com.softsec.tase.common.rpc.domain.container.Context;
 import com.softsec.tase.common.rpc.domain.job.JobExecutionMode;
 import com.softsec.tase.node.Configuration;
 import com.softsec.tase.node.Constants;
+import com.softsec.tase.node.detector.ProcessDetector;
+import com.softsec.tase.node.domain.ProcessResult;
 import com.softsec.tase.node.exception.ExecutionException;
 import com.softsec.tase.node.queue.ContextAccessController;
 
@@ -31,11 +33,14 @@ public class ContextHandlerThread implements Runnable {
 	
 	private ContextHandler contextExecutor;
 	
+	private ProcessDetector processDetector;
+	
 	private int index;
 	
-	public ContextHandlerThread(BlockingQueue<Context> queue, ContextHandler executor, int index) {
+	public ContextHandlerThread(BlockingQueue<Context> queue, ContextHandler executor, ProcessDetector detector, int index) {
 		this.queue = queue;
 		this.contextExecutor = executor;
+		this.processDetector = detector;
 		this.index = index;
 	}
 
@@ -48,11 +53,23 @@ public class ContextHandlerThread implements Runnable {
 			Context context = null;
 			try {
 				context = queue.take();
+				
 				if (context != null) {
+					
+					ProcessResult result = null;
+					
+					// run  task CONCURRENT-ly or EXCLUSIVE-ly
 					if (context.getJobExecutionMode().equals(JobExecutionMode.CONCURRENT)) {
-						accessConcurrentContext(context, index);
+						result = accessConcurrentContext(context, index);
 					} else if (context.getJobExecutionMode().equals(JobExecutionMode.EXCLUSIVE)) {
-						accessExclusiveContext(context);
+						result = accessExclusiveContext(context);
+					}
+					
+					// parse process result to decide report status
+					if (result != null) {
+						processDetector.reportTaskStatus(context.getTaskId(), 
+														context.getJobPhase(), 
+														processDetector.getTaskStatus(result));
 					}
 				} else {
 					LOGGER.info("Equipped context queue is EMPTY.");
@@ -61,6 +78,7 @@ public class ContextHandlerThread implements Runnable {
 				LOGGER.error("Thread [ " + Thread.currentThread().getName() + " ] is interrupted while executing context [ " 
 						+ context.getTaskId() + " ] : " + ie.getMessage(), ie);
 			} catch (ExecutionException ee) {
+				LOGGER.error("Failed to execute context [ " + context.getTaskId() + " ] : " + ee.getMessage(), ee);
 			}
 		}
 	}
@@ -71,15 +89,17 @@ public class ContextHandlerThread implements Runnable {
 	 * @param context
 	 * @param index
 	 */
-	private void accessConcurrentContext(Context context, int index) throws ExecutionException {
+	private ProcessResult accessConcurrentContext(Context context, int index) throws ExecutionException {
+		ProcessResult result = null;
 		try {
 			ContextAccessController.getInstance().getLock().lock();
 			ContextAccessController.getInstance().setProcessFlag(index, Thread.State.RUNNABLE);
 		} finally {
 			ContextAccessController.getInstance().getLock().unlock();
 		}
-		contextExecutor.launch(context);
+		result = contextExecutor.launch(context);
 		ContextAccessController.getInstance().setProcessFlag(index, Thread.State.NEW);
+		return result;
 	}
 	
 	/**
@@ -88,15 +108,18 @@ public class ContextHandlerThread implements Runnable {
 	 * and the execution will be launched after all previous running container exits.
 	 * @param context
 	 */
-	private void accessExclusiveContext(Context context) throws InterruptedException, ExecutionException {
+	private ProcessResult accessExclusiveContext(Context context) throws InterruptedException, ExecutionException {
+		ProcessResult result = null;
 		try {
 			ContextAccessController.getInstance().getLock().lock();
 			while(ContextAccessController.getInstance().existRunningProcess()) {
 				Thread.sleep(CONTEXT_CHECKUP_INTERVAL);
 			}
-			contextExecutor.launch(context);
+			result = contextExecutor.launch(context);
 		} finally {
 			ContextAccessController.getInstance().getLock().unlock();
 		}
+		return result;
 	}
+	
 }

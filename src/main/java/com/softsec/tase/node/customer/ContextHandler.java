@@ -35,33 +35,50 @@ public class ContextHandler {
 	
 	private static final String EXECUTION_TEMP_DIR = Configuration.get(Constants.EXECUTION_TEMP_DIR, "./");
 	
-	public void launch(Context context) throws ExecutionException {
+	public ProcessResult launch(Context context) throws ExecutionException {
 		
 		LOGGER.info("Start executing program " + context.getProgramId() + " : " + context.getProgramName());
 		
-		// prepare execute commands
-		List<String> commandList = null;
-		StringBuilder commandBuilder = new StringBuilder();
-		// prepare parameter
-		if (context.getParameter().getContextParameterList() != null
-				&& context.getParameter().getContextParameterList().size() != 0) {
-			String[] parameterArray = new String[context.getParameter().getContextParameterList().size() + 1];
-			parameterArray[0] = context.getScriptName();
-			for (ContextParameter parameter : context.getParameter().getContextParameterList()) {
-				parameterArray[parameter.sequenceNum] = 
-						(StringUtils.isEmpty(parameter.getOpt()) ? "" : parameter.getOpt())
-						+ " " + (StringUtils.isEmpty(parameter.getContent()) ? "" : parameter.getContent());
-			}
-			for (String parameterContent : parameterArray) {
-				commandBuilder.append(parameterContent + " ");
-			}
-			commandBuilder.append(context.getTaskId());
-		} else {
-			commandBuilder.append(context.getScriptName());			
-		}
-		commandList = CmdGenerator.getCommandList(commandBuilder.toString().trim());
+		List<String> commandList = getCommand(context);
 		
-		//prepare environment variables
+		Map<String, String> envMap = getEnvVariables(context);
+
+		ProcessResult result = runCommand(context, commandList, envMap);
+		LOGGER.info("Task [ " + context.getTaskId() + " ] process exit with result : " + result.toString());
+		
+		return result;
+	}
+
+	/**
+	 * @param context
+	 * @param commandList
+	 * @param envMap
+	 * @return
+	 * @throws ExecutionException
+	 */
+	private ProcessResult runCommand(Context context, List<String> commandList, Map<String, String> envMap) throws ExecutionException {
+		// run command
+		Process process = null;
+		try {
+//			process = ProcessFactory.getProcess(commandList, envMap, new File(EXECUTION_TEMP_DIR + "/" + context.getProgramId() + "/"));
+			process = ProcessFactory.getProcess(commandList, envMap, new File(EXECUTION_TEMP_DIR + "/"));
+		} catch (IOException ioe) {
+			LOGGER.error("Failed to get task [ " + context.getTaskId() + " ] process : " + ioe.getMessage(), ioe);
+			throw new ExecutionException("Failed to get task [ " + context.getTaskId() + " ] process : " + ioe.getMessage(), ioe);
+		}
+		
+		// monitor process running status
+		ProcessResult result = new ProcessHandler().launchContainer(process, commandList.toString(), null, 0, context.getTimeout(), "UTF-8");
+		return result;
+	}
+
+	/**
+	 * prepare environment variables
+	 * @param context
+	 * @return
+	 * @throws ExecutionException
+	 */
+	private Map<String, String> getEnvVariables(Context context) throws ExecutionException {
 		Map<String, String> envMap = null;
 		try {
 			envMap = CmdGenerator.getEnvMap(context.getEnvVariables(), context.getJobReturnMode());
@@ -69,20 +86,47 @@ public class ContextHandler {
 			LOGGER.error("Failed to parse environment variables : " + context.getEnvVariables() + " : " + pe.getMessage(), pe);
 			throw new ExecutionException("Failed to parse environment variables : " + context.getEnvVariables() + " : " + pe.getMessage(), pe);
 		}
+		return envMap;
+	}
 
-		// run command
-		Process process = null;
-		try {
-//			process = ProcessFactory.getProcess(commandList, envMap, new File(EXECUTION_TEMP_DIR + "/" + context.getProgramId() + "/"));
-			process = ProcessFactory.getProcess(commandList, envMap, new File(EXECUTION_TEMP_DIR + "/"));
-		} catch (IOException ioe) {
-			LOGGER.error("Failed to get process : " + ioe.getMessage(), ioe);
-			throw new ExecutionException("Failed to get process : " + ioe.getMessage(), ioe);
+	/**
+	 * prepare command list
+	 * @param context
+	 * @return
+	 */
+	private List<String> getCommand(Context context) throws ExecutionException {
+		
+		// prepare execute commands
+		StringBuilder commandBuilder = new StringBuilder();
+		
+		if (context.getParameter().getContextParameterList() != null
+				&& context.getParameter().getContextParameterList().size() != 0) {
+			
+			// if parameter sequence matters
+			String[] parameterArray = new String[context.getParameter().getContextParameterList().size() + 1];
+			parameterArray[0] = context.getScriptName();
+			
+			for (ContextParameter parameter : context.getParameter().getContextParameterList()) {
+				parameterArray[parameter.sequenceNum] = 
+						(StringUtils.isEmpty(parameter.getOpt()) ? "" : parameter.getOpt()) + " " 
+								+ (StringUtils.isEmpty(parameter.getContent()) ? "" : parameter.getContent());
+			}
+			
+			// TODO if parameter sequence doesn't matter
+//			commandBuilder.append(context.getScriptName() + " ");
+//			for (ContextParameter parameter : context.getParameter().getContextParameterList()) {
+//				commandBuilder.append((StringUtils.isEmpty(parameter.getOpt()) ? "" : parameter.getOpt()) + " ");
+//				commandBuilder.append((StringUtils.isEmpty(parameter.getContent()) ? "" : parameter.getContent()) + " ");
+//			}
+			
+			for (String parameterContent : parameterArray) {
+				commandBuilder.append(parameterContent + " ");
+			}
+		} else {
+			commandBuilder.append(context.getScriptName());			
 		}
 		
-		// monitor process running status
-		ProcessResult result = new ProcessHandler().launchContainer(process, commandList.toString(), null, 0, context.getTimeout(), "utf-8");
-		
-		LOGGER.info("Process exit with result : " + result.toString());
+		commandBuilder.append(context.getTaskId());
+		return  CmdGenerator.getCommandList(commandBuilder.toString().trim());
 	}
 }

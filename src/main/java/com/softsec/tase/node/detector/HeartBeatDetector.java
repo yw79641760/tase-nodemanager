@@ -90,7 +90,7 @@ public class HeartBeatDetector implements Runnable, StatefulJob {
 	 */
 	public NodePayload generateHeartBeat() {
 		
-		final String NODE_ID = Configuration.get(Constants.LISTENER_DOMAIN, null)
+		final String NODE_ID = Configuration.get(Constants.LOCAL_LISTENER_DOMAIN, "127.0.0.1")
 				+ ":" + Configuration.getInt(Constants.TASK_SERVICE_PORT, 7000);
 		
 		final ClusterType CLUSTER_TYPE = ClusterType.valueOf(Configuration.get(Constants.CLUSTER_TYPE, "FIXED"));

@@ -12,7 +12,7 @@ package com.softsec.tase.node;
 public final class Constants {
 	
 	/** rpc settings */
-	public static final String LISTENER_DOMAIN= "nodemanager.listener.domain";
+	public static final String LOCAL_LISTENER_DOMAIN= "local.listener.domain";
 	
 	public static final String TASK_SERVICE_PORT = "task.service.port";
 	
@@ -55,4 +55,5 @@ public final class Constants {
 	
 	public static final String FTP_REINFORCE_REPO = "ftp.reinforce.repo";
 
+	public static final String FTP_REINFORCED_REPO = "ftp.reinforced.repo";
 }

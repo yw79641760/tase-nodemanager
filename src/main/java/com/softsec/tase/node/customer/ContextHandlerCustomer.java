@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import com.softsec.tase.node.Configuration;
 import com.softsec.tase.node.Constants;
+import com.softsec.tase.node.detector.ProcessDetector;
 import com.softsec.tase.node.queue.ContextAccessController;
 import com.softsec.tase.node.queue.ContextQueue;
 
@@ -40,7 +41,10 @@ public class ContextHandlerCustomer {
 
 		threadPool = Executors.newFixedThreadPool(executorCount);
 		for (int index = 0; index < executorCount; index++) {
-			Runnable executorCustomer = new ContextHandlerThread(ContextQueue.getInstance().getEquippedContextQueue(), new ContextHandler(), index);
+			Runnable executorCustomer = new ContextHandlerThread(ContextQueue.getInstance().getEquippedContextQueue(), 
+																new ContextHandler(), 
+																new ProcessDetector(), 
+																index);
 			threadPool.submit(new Thread(executorCustomer, "ContextExecutor-" + index));
 		}
 		

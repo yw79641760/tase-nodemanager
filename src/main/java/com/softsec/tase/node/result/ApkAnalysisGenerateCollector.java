@@ -25,9 +25,9 @@ import com.softsec.tase.store.util.fs.IOUtils;
  * @since 2013-8-9 下午4:26:02
  * @version
  */
-public class ApkDefaultGenerateCollector extends ResultCollectorService {
+public class ApkAnalysisGenerateCollector extends ResultCollectorService {
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger(ApkDefaultGenerateCollector.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ApkAnalysisGenerateCollector.class);
 	
 	/* (non-Javadoc)
 	 * @see com.softsec.tase.node.result.ResultCollectorService#validate(com.softsec.tase.node.domain.RawResult)

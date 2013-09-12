@@ -10,10 +10,12 @@ import org.slf4j.LoggerFactory;
 
 import com.softsec.tase.common.dto.app.AppResult;
 import com.softsec.tase.common.dto.app.apk.Apk;
+import com.softsec.tase.node.Constants;
 import com.softsec.tase.node.domain.RawResult;
 import com.softsec.tase.node.exception.ParserException;
 import com.softsec.tase.node.exception.ResultException;
 import com.softsec.tase.node.util.domain.ApkHandler;
+import com.softsec.tase.store.Configuration;
 import com.softsec.tase.store.exception.IOUtilsException;
 import com.softsec.tase.store.util.fs.IOUtils;
 
@@ -27,7 +29,7 @@ import com.softsec.tase.store.util.fs.IOUtils;
 public class ApkReinforceGenerateCollector extends ResultCollectorService {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(ApkReinforceGenerateCollector.class);
-
+	
 	/* (non-Javadoc)
 	 * @see com.softsec.tase.node.result.ResultCollectorService#validate(com.softsec.tase.node.domain.RawResult)
 	 */
@@ -37,6 +39,7 @@ public class ApkReinforceGenerateCollector extends ResultCollectorService {
 		int retCode = -1;
 		
 		String reinforcedApkPath = null;
+		String reinforcedRepo = Configuration.get(Constants.FTP_REINFORCED_REPO, "reinforced");
 	
 		try {
 			reinforcedApkPath = ((AppResult) IOUtils.getObject(rawResult.getContent().array())).getApkPath();
@@ -47,7 +50,7 @@ public class ApkReinforceGenerateCollector extends ResultCollectorService {
 		
 		Apk apk = null;
 		try {
-			apk = ApkHandler.getApkFromApkFile(new AppResult(reinforcedApkPath), "reinforced");
+			apk = ApkHandler.getApkFromApkFile(new AppResult(reinforcedApkPath), reinforcedRepo);
 		} catch (ParserException pe) {
 			LOGGER.error("Failed to parse apk object from file [ " + reinforcedApkPath + " ] : " + pe.getMessage(), pe);
 			throw new ResultException("Failed to parse apk object from file [ " + reinforcedApkPath + " ] : " + pe.getMessage(), pe);
