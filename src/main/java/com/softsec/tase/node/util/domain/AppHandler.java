@@ -26,9 +26,8 @@ import com.softsec.tase.node.exception.ParserException;
  * @since 2013-8-30 下午2:51:35
  * @version
  * @param <T>
- * @param <T>
  */
-public class AppHandler<T> {
+public class AppHandler {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(AppHandler.class);
 
@@ -108,39 +107,15 @@ public class AppHandler<T> {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private static List<TBase> normalizeAppElementList(Object value, TFieldIdEnum[] fieldEnumArray) {
 		List<TBase> appElementList = (List<TBase>) value;
-		if (appElementList != null && appElementList.size() != 0) {
-			for (int index = 0; index < appElementList.size(); index++) {
-				TBase appElement = appElementList.get(index);
-				for (TFieldIdEnum field : fieldEnumArray) {
-					if (appElement.getFieldValue(field).getClass().equals(String.class)) {
-						appElement.setFieldValue(field, normalizeString(field, appElement.getFieldValue(field)));
-					}
+		for (int index = 0; index < appElementList.size(); index++) {
+			TBase appElement = appElementList.get(index);
+			for (TFieldIdEnum field : fieldEnumArray) {
+				if (appElement.getFieldValue(field).getClass().equals(String.class)) {
+					appElement.setFieldValue(field, normalizeString(field, appElement.getFieldValue(field)));
 				}
-				appElementList.set(index, appElement);
 			}
+			appElementList.set(index, appElement);
 		}
 		return appElementList;
-	}
-	
-	/**
-	 * normalize app web element using Generic Java
-	 * @param valueList
-	 * @param fieldEnumArray
-	 * @return
-	 */
-	@SuppressWarnings("unchecked")
-	private static <T extends TBase<T, F>, F extends TFieldIdEnum> List<T> normalizeAppElementList(List<T> valueList, F[] fieldEnumArray) {
-		if (valueList != null && valueList.size() != 0) {
-			for (int index = 0; index < valueList.size(); index++) {
-				T appElement = valueList.get(index);
-				for (TFieldIdEnum field : fieldEnumArray) {
-					if (appElement.getFieldValue((F) field).getClass().equals(String.class)) {
-						appElement.setFieldValue((F) field, normalizeString(field, appElement.getFieldValue((F) field)));
-					}
-				}
-				valueList.set(index, appElement);
-			}
-		}
-		return valueList;
 	}
 }

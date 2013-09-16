@@ -123,7 +123,7 @@ public class ContextHandler {
 				commandBuilder.append(parameterContent + " ");
 			}
 		} else {
-			commandBuilder.append(context.getScriptName());			
+			commandBuilder.append(context.getScriptName() + " ");			
 		}
 		
 		commandBuilder.append(context.getTaskId());
